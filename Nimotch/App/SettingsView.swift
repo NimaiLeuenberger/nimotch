@@ -28,9 +28,39 @@ struct SettingsView: View {
 
 private struct GeneralSettingsView: View {
     let notch: NotchViewModel
+    @State private var launchAtLogin = LaunchAtLogin.isEnabled
+    @State private var launchError: String?
 
     var body: some View {
         Form {
+            Section("Startup") {
+                Toggle("Open nimotch at login", isOn: $launchAtLogin)
+                    .disabled(!LaunchAtLogin.isInstalled)
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        do {
+                            try LaunchAtLogin.set(enabled)
+                            launchError = nil
+                        } catch {
+                            launchError = error.localizedDescription
+                        }
+                        launchAtLogin = LaunchAtLogin.isEnabled
+                    }
+                if !LaunchAtLogin.isInstalled {
+                    Text("This is a dev build. Install with ./scripts/install.sh to use this.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else if LaunchAtLogin.needsApproval {
+                    HStack {
+                        Text("Needs approval in System Settings → Login Items.")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Open") { LaunchAtLogin.openSystemSettings() }
+                    }
+                }
+                if let launchError {
+                    Text(launchError).font(.callout).foregroundStyle(.red)
+                }
+            }
             Section("Display") {
                 if let geometry = notch.geometry {
                     LabeledContent("Built-in display", value: "\(Int(geometry.screenFrame.width)) × \(Int(geometry.screenFrame.height)) pt")

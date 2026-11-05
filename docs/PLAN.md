@@ -5,7 +5,8 @@ For personal use only: not sandboxed, not notarized, not distributed.
 
 ## Status (2026-11-05)
 - ✅ Phase 0 skeleton, 1a Calendar, 1b Notion widgets, 2 Spotify: built and in daily use. Unit tests are in `NimotchTests/`.
-- ⏳ Phase 3 polish: launch at login, error/empty-state polish, auto-join add-on.
+- ✅ Launch at login (installed copy in /Applications, toggle in Settings → General).
+- ⏳ Phase 3 polish: error/empty-state polish, auto-join add-on.
 - Changes since the original plan below:
   - Hover only grows and glows the notch slightly; a **click** expands it.
   - Meeting countdown: rest the mouse on it for 2 s to get a stop button that hides it (the Join peek still appears).

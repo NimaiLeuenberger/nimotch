@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !Self.isRunningTests else { return }
+        LaunchAtLogin.enableOnFirstInstalledLaunch()
 
         notch.openSettings = { [weak self] in self?.settingsWindow.show() }
         notch.onStopCountdown = { [weak self] id in self?.calendar.hideCountdown(for: id) }

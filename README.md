@@ -14,11 +14,13 @@ Hover the notch for a hint, click to open it. The gear icon opens Settings.
 macOS 26+, Xcode 26, [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`),
 and an Apple Development signing certificate. The team ID is in `project.yml`.
 
-## Build, run, test
+## Install, run, test
 ```bash
-./scripts/run.sh    # build and launch
-./scripts/test.sh   # unit tests
+./scripts/install.sh   # build Release, copy to /Applications, start; opens at login from then on
+./scripts/run.sh       # dev build from build/ (for development)
+./scripts/test.sh      # unit tests
 ```
+Once installed, start it like any app (Spotlight: "nimotch"). Turn "Open at login" on or off in Settings → General.
 
 ## Setup inside the app (Settings)
 - **Calendar**: allow access when asked.

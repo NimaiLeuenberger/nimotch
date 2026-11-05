@@ -7,8 +7,9 @@ macOS 26+, Xcode 26, built from the CLI. History and decisions: `docs/PLAN.md`.
 ## Commands
 
 ```bash
-./scripts/run.sh     # xcodegen + build (Debug) + relaunch the app
+./scripts/run.sh     # xcodegen + build (Debug) + relaunch the app from build/ (dev loop)
 ./scripts/test.sh    # xcodegen + run all unit tests (Swift Testing), must end with TEST SUCCEEDED
+./scripts/install.sh # Release build → /Applications/nimotch.app (the copy the user runs daily)
 ```
 
 - `Nimotch.xcodeproj` is **generated** by XcodeGen from `project.yml` and gitignored. After adding or
@@ -91,3 +92,6 @@ NimotchTests/ Swift Testing suites, one per module, plus the notch state machine
 - Spotify AppleScript must never launch Spotify: always check `isRunning` first.
 - Notion API version is pinned (`NotionClient.apiVersion`). `last_edited_time` has minute granularity.
 - Unit tests run hosted in the app. `AppDelegate.isRunningTests` skips all startup work.
+- Launch at login (`Shared/LaunchAtLogin.swift`, SMAppService) is only registered by the copy in
+  `/Applications`, on its first launch. Dev and installed builds share a bundle ID: `run.sh` and
+  `install.sh` both kill the running instance first. After testing a dev build, reinstall with `install.sh`.
