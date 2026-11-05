@@ -1,0 +1,71 @@
+name: Nimotch
+options:
+  bundleIdPrefix: com.nimai
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    DEVELOPMENT_TEAM: WU2UULD8SF
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Development"
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_STRICT_CONCURRENCY: complete
+targets:
+  Nimotch:
+    type: application
+    platform: macOS
+    sources:
+      - path: Nimotch
+    settings:
+      base:
+        PRODUCT_NAME: nimotch
+        PRODUCT_BUNDLE_IDENTIFIER: com.nimai.nimotch
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        CODE_SIGN_ENTITLEMENTS: Nimotch/Resources/Nimotch.entitlements
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Nimotch/Resources/Info.plist
+    info:
+      path: Nimotch/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: nimotch
+        CFBundleName: nimotch
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSAppleEventsUsageDescription: nimotch controls Spotify to show and control what is playing.
+        NSCalendarsFullAccessUsageDescription: nimotch shows today's events and meeting countdowns in the notch.
+    entitlements:
+      path: Nimotch/Resources/Nimotch.entitlements
+      properties:
+        com.apple.security.automation.apple-events: true
+        com.apple.security.personal-information.calendars: true
+  NimotchTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: NimotchTests
+    dependencies:
+      - target: Nimotch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nimai.nimotch.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/nimotch.app/Contents/MacOS/nimotch
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  Nimotch:
+    build:
+      targets:
+        Nimotch: all
+        NimotchTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - NimotchTests
