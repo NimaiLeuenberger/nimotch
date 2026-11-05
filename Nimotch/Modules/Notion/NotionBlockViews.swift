@@ -35,21 +35,58 @@ struct BlockRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            row
-                .onHover { hovering = $0 }
-                .contextMenu { menu }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                row
+                if hasActions { actions }
+            }
+            // Hover = slightly brighter background. Padding is constant (and cancelled out
+            // outside), so hovering never moves or re-wraps the line.
+            .padding(.horizontal, Self.highlightInset)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(.white.opacity(hovering ? 0.08 : 0))
+            )
+            .padding(.horizontal, -Self.highlightInset)
+            .contentShape(Rectangle())
+            .onHover { hovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: hovering)
+            .contextMenu { menu }
+
             if showsChildren, !block.children.isEmpty {
                 // AnyView breaks the recursive opaque type (BlockList → BlockRow → BlockList).
                 AnyView(BlockList(blocks: block.children, hideChecked: hideChecked, notch: notch))
                     .padding(.leading, 20)
             }
             if store.addingAfterID == block.id {
-                AddTodoField(after: block.id, notch: notch, autoFocus: true)
+                AddBlockField(after: block.id, kind: block.kind.newLineKind, notch: notch, autoFocus: true)
             }
         }
     }
 
+    static let highlightInset: CGFloat = 6
+
     private var showsChildren: Bool { block.kind != .toggle || expanded }
+
+    /// Rows that get the hover "+" / "×" buttons.
+    private var hasActions: Bool { block.kind.isEditableText || block.kind == .divider }
+
+    /// "+" (add a line below) and "×" (delete). Always laid out, only faded in on hover,
+    /// so their width is reserved and text never wraps differently while hovering.
+    private var actions: some View {
+        let enabled = hovering && !block.id.hasPrefix("temp-")
+        return HStack(spacing: 2) {
+            RowActionButton(icon: "plus", help: "Add a line below") {
+                notch.beginTextEditing()
+                store.addingAfterID = block.id
+            }
+            RowActionButton(icon: "xmark", help: "Delete (moves to Notion trash)") {
+                store.delete(block.id)
+            }
+        }
+        .opacity(enabled ? 1 : 0)
+        .allowsHitTesting(enabled)
+    }
 
     @ViewBuilder private var row: some View {
         switch block.kind {
@@ -74,19 +111,16 @@ struct BlockRow: View {
                 }
                 .buttonStyle(.plain)
                 text(size: 13, dimmed: block.checked)
-                deleteButton
             }
         case .bulleted:
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("•").foregroundStyle(.secondary)
                 text(size: 13)
-                deleteButton
             }
         case .numbered:
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("\(number).").foregroundStyle(.secondary).monospacedDigit()
                 text(size: 13)
-                deleteButton
             }
             .font(.system(size: 13))
         case .toggle:
@@ -144,20 +178,6 @@ struct BlockRow: View {
         EditableBlockText(block: block, font: .system(size: size, weight: weight), dimmed: dimmed, notch: notch)
     }
 
-    @ViewBuilder private var deleteButton: some View {
-        if hovering, !block.id.hasPrefix("temp-") {
-            Button { store.delete(block.id) } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 16, height: 16)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("Delete (moves to Notion trash)")
-        }
-    }
-
     @ViewBuilder private var menu: some View {
         if block.kind.isEditableText {
             Button("Edit") {
@@ -165,7 +185,7 @@ struct BlockRow: View {
                 store.editingBlockID = block.id
             }
         }
-        Button("Add to-do below") {
+        Button("Add Line Below") {
             notch.beginTextEditing()
             store.addingAfterID = block.id
         }
@@ -174,5 +194,26 @@ struct BlockRow: View {
             Divider()
             Button("Delete", role: .destructive) { store.delete(block.id) }
         }
+    }
+}
+
+private struct RowActionButton: View {
+    let icon: String
+    let help: String
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(hovering ? .primary : .secondary)
+                .frame(width: 18, height: 16)
+                .background(RoundedRectangle(cornerRadius: 4).fill(.white.opacity(hovering ? 0.12 : 0)))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(help)
     }
 }

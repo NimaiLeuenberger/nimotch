@@ -120,3 +120,15 @@ struct NotionBlockTreeTests {
         #expect(list.last?.id == "server-id")
     }
 }
+
+@Suite("Notion: adding lines")
+struct NotionNewLineTests {
+    @Test func plusContinuesListsElseAddsToDo() {
+        #expect(NotionBlock.Kind.toDo.newLineKind == .toDo)
+        #expect(NotionBlock.Kind.bulleted.newLineKind == .bulleted)
+        #expect(NotionBlock.Kind.numbered.newLineKind == .numbered)
+        #expect(NotionBlock.Kind.heading2.newLineKind == .toDo)
+        #expect(NotionBlock.Kind.paragraph.newLineKind == .toDo)
+        #expect(NotionBlock.Kind.divider.newLineKind == .toDo)
+    }
+}

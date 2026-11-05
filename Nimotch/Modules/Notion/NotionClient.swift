@@ -86,13 +86,16 @@ actor NotionClient {
         let _: Empty = try await send("PATCH", "blocks/\(blockID)", body: body)
     }
 
-    /// Appends a to-do under `parentID` (after `afterID` if given) and returns it.
-    func appendTodo(parentID: String, text: String, after afterID: String?) async throws -> NotionBlock {
+    /// Appends a text block (to-do, list item, paragraph…) under `parentID`, after `afterID`
+    /// if given, and returns it.
+    func appendBlock(parentID: String, kind: NotionBlock.Kind, text: String, after afterID: String?) async throws -> NotionBlock {
+        var content: [String: Any] = ["rich_text": Self.richText(text)]
+        if kind == .toDo { content["checked"] = false }
         var body: [String: Any] = [
             "children": [[
                 "object": "block",
-                "type": "to_do",
-                "to_do": ["rich_text": Self.richText(text), "checked": false],
+                "type": kind.apiType,
+                kind.apiType: content,
             ]],
         ]
         if let afterID { body["after"] = afterID }

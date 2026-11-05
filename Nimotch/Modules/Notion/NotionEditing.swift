@@ -53,9 +53,11 @@ struct EditableBlockText: View {
     }
 }
 
-/// "+ Add a to-do" field. At the page end it stays open for adding several items.
-struct AddTodoField: View {
+/// Inline field that adds a line. At the page end (`after == nil`) it stays open for adding
+/// several items; below a row (the row's "+") it closes after one line.
+struct AddBlockField: View {
     let after: String?
+    var kind: NotionBlock.Kind = .toDo
     let notch: NotchViewModel
     var autoFocus = false
     @Environment(NotionPageStore.self) private var store
@@ -63,12 +65,9 @@ struct AddTodoField: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "plus")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.tertiary)
-                .frame(width: 13)
-            TextField("Add a to-do", text: $text)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            marker
+            TextField(after == nil ? "Add a to-do" : "New line", text: $text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .focused($focused)
@@ -83,10 +82,25 @@ struct AddTodoField: View {
         }
     }
 
+    /// Mirrors the look of the line that will be created.
+    @ViewBuilder private var marker: some View {
+        switch (after, kind) {
+        case (.some, .toDo):
+            Image(systemName: "square").font(.system(size: 13)).foregroundStyle(.tertiary)
+        case (.some, .bulleted):
+            Text("•").foregroundStyle(.tertiary)
+        default:
+            Image(systemName: "plus")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .frame(width: 13)
+        }
+    }
+
     private func submit() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return close() }
-        store.addTodo(trimmed, after: after)
+        store.addBlock(trimmed, kind: kind, after: after)
         text = ""
         if after != nil { close() }
     }

@@ -107,6 +107,15 @@ struct NotionBlock: Identifiable, Equatable, Sendable {
             }
         }
 
+        /// Kind of the line the "+" button adds below a block: lists continue as the same
+        /// list type, anything else (headings, text, dividers…) gets a to-do.
+        var newLineKind: Kind {
+            switch self {
+            case .toDo, .bulleted, .numbered: self
+            default: .toDo
+            }
+        }
+
         /// Blocks whose children nimotch fetches and renders.
         var rendersChildren: Bool {
             switch self {

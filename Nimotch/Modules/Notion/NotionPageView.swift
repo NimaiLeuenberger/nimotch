@@ -73,7 +73,7 @@ struct NotionPageView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 3) {
                     BlockList(blocks: store.blocks, hideChecked: widget.hideChecked, notch: notch)
-                    AddTodoField(after: nil, notch: notch)
+                    AddBlockField(after: nil, notch: notch)
                         .padding(.top, 4)
                 }
                 .padding(.horizontal, 16)

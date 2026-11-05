@@ -89,17 +89,17 @@ final class NotionPageStore {
             revert: { [weak self] in self?.blocks = snapshot }
     }
 
-    /// Adds a to-do after `afterID` (as its sibling) or at the end of the page.
-    func addTodo(_ text: String, after afterID: String?) {
+    /// Adds a block after `afterID` (as its sibling) or at the end of the page.
+    func addBlock(_ text: String, kind: NotionBlock.Kind = .toDo, after afterID: String?) {
         let parentID = afterID.flatMap { find($0)?.parentID } ?? pageID
-        let temp = NotionBlock(id: "temp-\(UUID().uuidString)", parentID: parentID, kind: .toDo,
+        let temp = NotionBlock(id: "temp-\(UUID().uuidString)", parentID: parentID, kind: kind,
                                richText: [RichText(plain: text)], checked: false, hasChildren: false)
         NotionBlockTree.insert(temp, after: afterID, parentID: parentID, pageID: pageID, into: &blocks)
         inFlightWrites += 1
         Task { [client] in
             defer { inFlightWrites -= 1 }
             do {
-                let created = try await client.appendTodo(parentID: parentID, text: text, after: afterID)
+                let created = try await client.appendBlock(parentID: parentID, kind: kind, text: text, after: afterID)
                 NotionBlockTree.replace(temp.id, with: created, in: &blocks)
             } catch {
                 NotionBlockTree.remove(temp.id, from: &blocks)
