@@ -5,6 +5,7 @@ For personal use only: not sandboxed, not notarized, not distributed.
 
 ## Status (2026-11-05)
 - ✅ Phase 0 skeleton, 1a Calendar, 1b Notion widgets, 2 Spotify: built and in daily use. Unit tests are in `NimotchTests/`.
+- ✅ Per-display setting (Settings → General → Displays): built-in and/or external displays; externals get a pill.
 - ✅ Launch at login (installed copy in /Applications, toggle in Settings → General).
 - ⏳ Phase 3 polish: error/empty-state polish, auto-join add-on.
 - Changes since the original plan below:

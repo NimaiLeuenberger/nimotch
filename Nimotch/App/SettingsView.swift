@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    let notch: NotchViewModel
+    let displays: NotchDisplays
     let calendar: CalendarService
     let notion: NotionService
     let spotify: SpotifyService
@@ -9,7 +9,7 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             Tab("General", systemImage: "gearshape") {
-                GeneralSettingsView(notch: notch)
+                GeneralSettingsView(displays: displays)
             }
             Tab("Calendar", systemImage: "calendar") {
                 Form { CalendarSettingsView(calendar: calendar) }
@@ -27,7 +27,7 @@ struct SettingsView: View {
 }
 
 private struct GeneralSettingsView: View {
-    let notch: NotchViewModel
+    let displays: NotchDisplays
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var launchError: String?
 
@@ -61,15 +61,7 @@ private struct GeneralSettingsView: View {
                     Text(launchError).font(.callout).foregroundStyle(.red)
                 }
             }
-            Section("Display") {
-                if let geometry = notch.geometry {
-                    LabeledContent("Built-in display", value: "\(Int(geometry.screenFrame.width)) × \(Int(geometry.screenFrame.height)) pt")
-                    LabeledContent("Notch", value: "\(Int(geometry.notchSize.width)) × \(Int(geometry.notchSize.height)) pt")
-                } else {
-                    Text("Built-in display not available (lid closed?) — nimotch is hidden.")
-                        .foregroundStyle(.secondary)
-                }
-            }
+            DisplaysSection(displays: displays)
         }
         .formStyle(.grouped)
     }

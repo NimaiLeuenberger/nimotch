@@ -1,27 +1,35 @@
 import AppKit
 
-/// Position and size of the hardware notch on the built-in display.
+/// Where the notch shape hangs on one display. On displays without a hardware notch
+/// (external monitors) a pill of `fallbackWidth` × menu-bar height is used instead.
 struct NotchGeometry: Equatable {
+    static let fallbackWidth: CGFloat = 180
+    static let minimumHeight: CGFloat = 24
+
     let screenFrame: CGRect
     let notchSize: CGSize
+    let hasHardwareNotch: Bool
 
-    init?(screen: NSScreen) {
-        let height = screen.safeAreaInsets.top
-        guard height > 0,
-              let left = screen.auxiliaryTopLeftArea,
-              let right = screen.auxiliaryTopRightArea
-        else { return nil }
-        screenFrame = screen.frame
-        notchSize = CGSize(width: screen.frame.width - left.width - right.width, height: height)
+    /// Pure initializer (unit-tested): `safeAreaTop` > 0 plus both auxiliary areas means a real notch.
+    init(screenFrame: CGRect, visibleFrame: CGRect, safeAreaTop: CGFloat,
+         auxiliaryLeftWidth: CGFloat?, auxiliaryRightWidth: CGFloat?) {
+        self.screenFrame = screenFrame
+        if safeAreaTop > 0, let left = auxiliaryLeftWidth, let right = auxiliaryRightWidth {
+            hasHardwareNotch = true
+            notchSize = CGSize(width: screenFrame.width - left - right, height: safeAreaTop)
+        } else {
+            hasHardwareNotch = false
+            let menuBar = screenFrame.maxY - visibleFrame.maxY
+            notchSize = CGSize(width: Self.fallbackWidth, height: max(menuBar, Self.minimumHeight))
+        }
     }
 
-    /// The built-in (laptop) display, or nil when the lid is closed.
-    static func builtInScreen() -> NSScreen? {
-        NSScreen.screens.first { screen in
-            let key = NSDeviceDescriptionKey("NSScreenNumber")
-            guard let id = screen.deviceDescription[key] as? CGDirectDisplayID else { return false }
-            return CGDisplayIsBuiltin(id) != 0
-        }
+    init(screen: NSScreen) {
+        self.init(screenFrame: screen.frame,
+                  visibleFrame: screen.visibleFrame,
+                  safeAreaTop: screen.safeAreaInsets.top,
+                  auxiliaryLeftWidth: screen.auxiliaryTopLeftArea?.width,
+                  auxiliaryRightWidth: screen.auxiliaryTopRightArea?.width)
     }
 
     /// Screen-space rect (bottom-left origin) of a shape of `size` hanging from the top-center.

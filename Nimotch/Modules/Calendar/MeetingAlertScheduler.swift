@@ -5,12 +5,12 @@ import SwiftUI
 @MainActor
 final class MeetingAlertScheduler {
     private let calendar: CalendarService
-    private let notch: NotchViewModel
+    private let notch: NotchHub
     private var task: Task<Void, Never>?
     private var reminded: Set<String> = []
     private var announced: Set<String> = []
 
-    init(calendar: CalendarService, notch: NotchViewModel) {
+    init(calendar: CalendarService, notch: NotchHub) {
         self.calendar = calendar
         self.notch = notch
         task = Task { [weak self] in

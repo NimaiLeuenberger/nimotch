@@ -28,9 +28,13 @@ Nimotch/
     AppDelegate.swift          creates all services, injects them (environment), starts the notch
     SettingsView.swift         tabbed settings; one tab per module
   Notch/      The notch UI itself, module-agnostic
-    NotchViewModel.swift       state machine: collapsed ⇄ peek ⇄ expanded, hover, pin, live activities
+    NotchHub.swift             what modules talk to: broadcasts peeks/live activities to every display's notch
+    NotchDisplays.swift        connected displays + per-display on/off setting (built-in on, external off by default)
+    NotchDisplayManager.swift  one NotchWindowController per enabled display; re-syncs on screen/setting changes
+    NotchViewModel.swift       one per display: collapsed ⇄ peek ⇄ expanded, hover, pin, live activities
     NotchModels.swift          Tab, Peek, LiveActivity, MusicActivity, MeetingCountdown
-    NotchWindowController.swift NSPanel placement (built-in display only), mouse tracking, click-through
+    NotchGeometry.swift        notch size per display (hardware notch, or a menu-bar-high pill on external displays)
+    NotchWindowController.swift NSPanel for one display: placement, mouse tracking, click-through
     NotchRootView.swift        black notch shape + wings (collapsed) + peek content
     ExpandedView.swift         expanded panel: top row, tab bar, routes each Tab to its module view
   Modules/<Name>/  One folder per feature. Typical files:
@@ -43,13 +47,16 @@ Nimotch/
 NimotchTests/ Swift Testing suites, one per module, plus the notch state machine
 ```
 
-### How modules talk to the notch (`NotchViewModel`)
-- **Peek**: `notch.showPeek(.init(icon:title:subtitle:duration:action:artworkURL:))` shows a pill for a few seconds.
-- **Live activity** (wings while collapsed): `setMeetingCountdown(_:)`, `setMusic(_:)`. Priority is
-  meeting > music > demo (`liveActivity`). Rendering is in `NotchRootView.WingsRow`.
+### How modules talk to the notch (`NotchHub`, fans out to each display's `NotchViewModel`)
+- Services get the **hub**, never a single view model: `SpotifyService(notch: hub)`, `MeetingAlertScheduler(…, notch: hub)`.
+  Views get their own display's `NotchViewModel` (passed down as `notch`).
+- **Peek**: `hub.showPeek(.init(icon:title:subtitle:duration:action:artworkURL:))` shows a pill for a few seconds.
+- **Live activity** (wings while collapsed): `hub.setMeetingCountdown(_:)`, `hub.setMusic(_:)`. Priority is
+  meeting > music > demo (`liveActivity`). Rendering is in `NotchRootView.WingsRow`. The hub remembers the
+  state, so a display plugged in later shows it too.
 - **Tab**: add a case to `NotchViewModel.Tab` and route it in `ExpandedView.content` / `tabs`.
-- **Callbacks into AppKit/services** are closures on the view model, set by AppDelegate or the window
-  controller: `openSettings`, `onStopCountdown`, `requestKeyFocus`, `layoutDidChange`.
+- **Callbacks into AppKit/services**: `hub.openSettings` and `hub.onStopCountdown` (set by AppDelegate,
+  forwarded to every view model); `requestKeyFocus` and `layoutDidChange` are set per display by the window controller.
 - Text editing inside the panel must call `notch.beginTextEditing()` (pins the panel and makes it key).
 
 ### Modules
@@ -82,6 +89,8 @@ NimotchTests/ Swift Testing suites, one per module, plus the notch state machine
 ## Gotchas (learned the hard way)
 - `NSPanel.isFloatingPanel = true` resets the window level to `.floating`, so don't set it. The level is `mainMenu + 3`.
 - AppKit pushes borderless windows below the menu bar unless `constrainFrameRect` is overridden (`NotchPanel`).
+- Multiple displays: each enabled display has its own panel and view model with independent open/closed state.
+  A click in any other nimotch window counts as "outside" (local monitor in `NotchWindowController`).
 - Click-through: the panel covers 740×410 pt but sets `ignoresMouseEvents` unless the mouse is over the shape.
   Hit rects are computed in `NotchWindowController.updateHitTesting()`.
 - SwiftUI `openSettings` doesn't work reliably from the panel, so use `notch.openSettings?()` (custom window).

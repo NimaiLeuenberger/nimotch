@@ -6,7 +6,7 @@ struct NimotchApp: App {
 
     var body: some Scene {
         MenuBarExtra("nimotch", systemImage: "rectangle.topthird.inset.filled") {
-            MenuBarContent(notch: appDelegate.notch)
+            MenuBarContent(hub: appDelegate.hub)
         }
     }
 }

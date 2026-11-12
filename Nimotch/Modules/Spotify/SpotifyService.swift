@@ -38,7 +38,7 @@ final class SpotifyService {
 
     @ObservationIgnored private let bridge = SpotifyLocalBridge()
     @ObservationIgnored private let client = SpotifyWebClient()
-    @ObservationIgnored private let notch: NotchViewModel
+    @ObservationIgnored private let notch: NotchHub
     @ObservationIgnored private var pollTask: Task<Void, Never>?
     @ObservationIgnored private var lastTrackID: String?
     @ObservationIgnored private var hasInitialState = false
@@ -49,7 +49,7 @@ final class SpotifyService {
         static let peek = "spotify.peekOnTrackChange"
     }
 
-    init(notch: NotchViewModel) {
+    init(notch: NotchHub) {
         self.notch = notch
         UserDefaults.standard.register(defaults: [Keys.peek: true])
         clientID = UserDefaults.standard.string(forKey: Keys.clientID) ?? ""
@@ -195,7 +195,7 @@ final class SpotifyService {
         notch.setMusic(current.flatMap { $0.isPlaying ? .init(trackID: $0.trackID, artworkURL: $0.artworkURL) : nil })
 
         if let current, current.isPlaying, current.trackID != lastTrackID {
-            if hasInitialState, peekOnTrackChange, notch.mode != .expanded {
+            if hasInitialState, peekOnTrackChange, !notch.isAnyExpanded {
                 notch.showPeek(.init(
                     icon: "music.note",
                     tint: .green,

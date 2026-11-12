@@ -1,19 +1,19 @@
 import AppKit
 import SwiftUI
 
-/// Owns the notch panel: positions it on the built-in display, routes mouse
+/// Owns the notch panel on one display: positions it at the top center, routes mouse
 /// tracking into the view model and lets clicks pass through outside the shape.
+/// Created and removed by `NotchDisplayManager`.
 @MainActor
 final class NotchWindowController {
-    private let viewModel: NotchViewModel
+    let viewModel: NotchViewModel
     private let rootView: AnyView
     private var panel: NotchPanel?
     private var eventMonitors: [Any] = []
-    private var screenObserver: NSObjectProtocol?
 
     /// - Parameter rootView: the notch content, with all module services already injected
-    ///   into the environment (see `AppDelegate.makeNotchRootView`).
-    init(viewModel: NotchViewModel, rootView: some View) {
+    ///   into the environment (see `AppDelegate.environment(_:)`).
+    init(screen: NSScreen, viewModel: NotchViewModel, rootView: some View) {
         self.viewModel = viewModel
         self.rootView = AnyView(rootView)
         viewModel.layoutDidChange = { [weak self] in
@@ -21,25 +21,21 @@ final class NotchWindowController {
             self?.relinquishKeyFocusIfCollapsed()
         }
         viewModel.requestKeyFocus = { [weak self] in self?.panel?.makeKey() }
-        rebuild()
+        place(on: screen)
         installEventMonitors()
-        screenObserver = NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.rebuild() }
-        }
+    }
+
+    /// Removes the window and stops tracking (display disabled or disconnected).
+    func close() {
+        eventMonitors.forEach(NSEvent.removeMonitor)
+        eventMonitors.removeAll()
+        panel?.orderOut(nil)
+        panel = nil
     }
 
     // MARK: Window placement
-    private func rebuild() {
-        guard let screen = NotchGeometry.builtInScreen(),
-              let geometry = NotchGeometry(screen: screen)
-        else {
-            panel?.orderOut(nil)
-            viewModel.geometry = nil
-            return
-        }
+    func place(on screen: NSScreen) {
+        let geometry = NotchGeometry(screen: screen)
         viewModel.geometry = geometry
 
         let canvas = NotchViewModel.canvasSize
@@ -87,6 +83,14 @@ final class NotchWindowController {
         if let outside = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] _ in
             MainActor.assumeIsolated { self?.viewModel.clickedOutside() }
         }) { eventMonitors.append(outside) }
+
+        // Clicks in nimotch's other windows (another display's notch, Settings) also count as outside.
+        if let otherWindow = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] event in
+            MainActor.assumeIsolated {
+                if let self, event.window !== self.panel { self.viewModel.clickedOutside() }
+            }
+            return event
+        }) { eventMonitors.append(otherWindow) }
     }
 
     /// Makes the panel clickable only while the mouse is over the visible shape.
