@@ -6,10 +6,11 @@ import Testing
 struct MeetingAlertPlannerTests {
     let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
-    func meeting(_ id: String, inMinutes minutes: Double, allDay: Bool = false, declined: Bool = false) -> CalendarEvent {
+    func meeting(_ id: String, inMinutes minutes: Double, allDay: Bool = false, declined: Bool = false,
+                 canceled: Bool = false) -> CalendarEvent {
         let start = now.addingTimeInterval(minutes * 60)
         return CalendarEvent(id: id, title: id, start: start, end: start.addingTimeInterval(1800),
-                             isAllDay: allDay, isDeclined: declined)
+                             isAllDay: allDay, isDeclined: declined, isCanceled: canceled)
     }
 
     func plan(_ events: [CalendarEvent], settings: MeetingAlertPlanner.Settings = .init(),
@@ -63,6 +64,13 @@ struct MeetingAlertPlannerTests {
         #expect(p.reminders.isEmpty)
     }
 
+    @Test func ignoresCanceled() {
+        let p = plan([meeting("canceled", inMinutes: 5, canceled: true), meeting("soon", inMinutes: -0.5, canceled: true)])
+        #expect(p.countdown == nil)
+        #expect(p.reminders.isEmpty)
+        #expect(p.starting.isEmpty)
+    }
+
     @Test func prefersUpcomingMeetingOverOneThatStarted() {
         let p = plan([meeting("started", inMinutes: -1), meeting("next", inMinutes: 5)])
         #expect(p.countdown?.id == "next")
@@ -72,5 +80,27 @@ struct MeetingAlertPlannerTests {
         #expect(plan([meeting("a", inMinutes: 10.5)]).nextTick == .seconds(1))
         #expect(plan([meeting("a", inMinutes: 25)]).nextTick == .seconds(15))
         #expect(plan([]).nextTick == .seconds(15))
+    }
+}
+
+@Suite("Canceled meetings")
+struct CanceledEventTests {
+    @Test func detectsCancelPrefixes() {
+        for title in ["Canceled: Platform Fach-Refinement", "Cancelled: Standup", "CANCELED: x",
+                      "  Canceled: leading space", "Abgesagt: Weekly", "Annulé: Point", "Canceled event: Sync"] {
+            #expect(CalendarEvent.isCanceled(title: title, statusCanceled: false), "\(title)")
+        }
+    }
+
+    @Test func detectsCanceledStatus() {
+        #expect(CalendarEvent.isCanceled(title: "Weekly", statusCanceled: true))
+        #expect(CalendarEvent.isCanceled(title: nil, statusCanceled: true))
+    }
+
+    @Test func keepsNormalMeetings() {
+        for title in ["Platform Fach-Refinement", "Why we canceled: retro", "Canceled", "Cancel culture talk", ""] {
+            #expect(!CalendarEvent.isCanceled(title: title, statusCanceled: false), "\(title)")
+        }
+        #expect(!CalendarEvent.isCanceled(title: nil, statusCanceled: false))
     }
 }

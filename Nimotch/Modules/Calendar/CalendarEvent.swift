@@ -26,12 +26,15 @@ struct CalendarEvent: Identifiable, Equatable {
     let attendees: [Attendee]
     let meetingLink: MeetingLink?
     let isDeclined: Bool
+    /// Canceled by the organizer but still in the calendar (hidden everywhere, see `isCanceled(title:statusCanceled:)`).
+    let isCanceled: Bool
 
     /// Memberwise init (tests, previews).
     init(id: String, title: String, start: Date, end: Date, isAllDay: Bool = false,
          calendarTitle: String = "Calendar", color: Color = .blue, location: String? = nil,
          notes: String? = nil, url: URL? = nil, organizer: String? = nil,
-         attendees: [Attendee] = [], meetingLink: MeetingLink? = nil, isDeclined: Bool = false) {
+         attendees: [Attendee] = [], meetingLink: MeetingLink? = nil, isDeclined: Bool = false,
+         isCanceled: Bool = false) {
         self.id = id
         eventIdentifier = nil
         self.title = title
@@ -47,6 +50,7 @@ struct CalendarEvent: Identifiable, Equatable {
         self.attendees = attendees
         self.meetingLink = meetingLink
         self.isDeclined = isDeclined
+        self.isCanceled = isCanceled
     }
 
     init(_ event: EKEvent) {
@@ -67,6 +71,22 @@ struct CalendarEvent: Identifiable, Equatable {
         }
         isDeclined = attendees.contains { $0.isCurrentUser && $0.status == .declined }
         meetingLink = LinkDetector.find(in: [event.url?.absoluteString, event.location, event.notes])
+        isCanceled = Self.isCanceled(title: event.title, statusCanceled: event.status == .canceled)
+    }
+
+    /// Title prefixes Outlook/Exchange/Google put on canceled meetings that stay in the calendar.
+    static let canceledPrefixes = [
+        "canceled:", "cancelled:", "canceled event:", "cancelled event:",
+        "abgesagt:", "annulé:", "annule:", "annullato:",
+    ]
+
+    /// Canceled = EventKit status `.canceled` (exact, when the server sets it) or a cancel prefix in the
+    /// title (what Outlook does when the organizer cancels and the event isn't removed yet).
+    static func isCanceled(title: String?, statusCanceled: Bool) -> Bool {
+        if statusCanceled { return true }
+        guard let title else { return false }
+        let lowered = title.trimmingCharacters(in: .whitespaces).lowercased()
+        return canceledPrefixes.contains { lowered.hasPrefix($0) }
     }
 
     func isOngoing(at now: Date) -> Bool { start <= now && now < end }

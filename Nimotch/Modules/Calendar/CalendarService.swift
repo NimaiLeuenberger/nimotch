@@ -106,7 +106,7 @@ final class CalendarService {
         let predicate = store.predicateForEvents(withStart: dayStart, end: dayEnd, calendars: included)
         events = store.events(matching: predicate)
             .map(CalendarEvent.init)
-            .filter { showAllDay || !$0.isAllDay }
+            .filter { !$0.isCanceled && (showAllDay || !$0.isAllDay) }
             .sorted { ($0.isAllDay ? 0 : 1, $0.start, $0.title) < ($1.isAllDay ? 0 : 1, $1.start, $1.title) }
     }
 

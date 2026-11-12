@@ -37,7 +37,7 @@ enum MeetingAlertPlanner {
         reminded: Set<String>,
         announced: Set<String>
     ) -> Plan {
-        let meetings = events.filter { !$0.isAllDay && !$0.isDeclined }
+        let meetings = events.filter { !$0.isAllDay && !$0.isDeclined && !$0.isCanceled }
         var plan = Plan()
 
         if settings.remindBefore {
